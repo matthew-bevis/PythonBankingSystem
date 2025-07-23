@@ -72,5 +72,83 @@ class Customer:
             'customer_id': self.customer_id,
             'first_name': self.fName,
             'last_name': self.lName,
-            
+            'address': self.addr,
+            'accounts': [a.to_dict() for a in self.accounts]
         }
+
+
+#CLI
+
+def main():
+    data = load_data()
+    customers = [Customer(**{k: v for k, v in c.items() if k != 'accounts'}) for c in data]
+
+    for c, stored in zip(customers, data):
+        for a in stored['accounts']:
+            account = BankAccount(a['account_type'])
+            account.balance = a['balance']
+            c.accounts.append(account)
+
+    print("Welcome to the CLI Banking System")
+    while True:
+        print("\nOptions:\n1. Add Customer\n2. Deposit\n3. Withdraw\n4. Show Customers\n5. Exit")
+        choice = input("Select: ")
+
+        try:
+            if choice == '1':
+                fn = input("First Name: ")
+                ln = input("Last Name: ")
+                addr = input("Address: ")
+                acc_type = input("Account Type (checking/savings): ")
+                customer = Customer(fn, ln, addr)
+                customer.add_account(acc_type)
+                customers.append(customer)
+                logging.info(f"Added customer {fn} {ln}")
+
+            elif choice == '2':
+                cid = input("Customer ID: ")
+                amt = float(input("Amount to deposit: "))
+                acc_type = input("Account Type: ")
+                customer = next((c for c in customers if c.customer_id == cid), None)
+                if customer:
+                    acc = next((a for a in customer.accounts if a.account_type == acc_type), None)
+                    if acc:
+                        acc.deposit(amt)
+                    else:
+                        print("Account not found.")
+                else:
+                    print("Customer not found.")
+
+            elif choice == '3':
+                cid = input("Customer ID: ")
+                amt = float(input("Amount to withdraw: "))
+                acc_type = input("Account Type: ")
+                customer = next((c for c in customers if c.customer_id == cid), None)
+                if customer:
+                    acc = next((a for a in customer.accounts if a.account_type == acc_type), None)
+                    if acc:
+                        acc.withdraw(amt)
+                    else:
+                        print("Account not found.")
+                else:
+                    print("Customer not found.")
+
+            elif choice == '4':
+                for c in customers:
+                    print(f"{c.customer_id} - {c.first_name} {c.last_name} - {c.address}")
+                    for a in c.accounts:
+                        print(f"   {a.account_type} - Balance: ${a.balance:.2f}")
+
+            elif choice == '5':
+                break
+            else:
+                print("Invalid choice.")
+        except Exception as e:
+            print(f"Error: {e}")
+            logging.warning(f"Operation failed: {e}")
+
+    save_data([c.to_dict() for c in customers])
+    print("Thank you for using the banking system.")
+
+if __name__ == '__main__':
+    main()
